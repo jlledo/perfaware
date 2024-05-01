@@ -183,9 +183,10 @@ mod tests {
     fn single_register_mov() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("listings/listing_0037_single_register_mov");
-
         let instruction = std::fs::read(path).unwrap();
+
         let dissassembly = disassemble(&instruction);
+
         assert_eq!(
             dissassembly,
             "bits 16
@@ -200,9 +201,10 @@ mov cx, bx
     fn many_register_mov() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("listings/listing_0038_many_register_mov");
-
         let instructions = std::fs::read(path).unwrap();
+
         let dissassembly = disassemble(&instructions);
+
         assert_eq!(
             dissassembly,
             "bits 16
