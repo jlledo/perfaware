@@ -108,3 +108,24 @@ enum Mode {
     Memory16Bit,
     Register,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn register_to_register_word() {
+        let instruction_first_byte = 0b1000_1001;
+        let instruction_second_byte = 0b_1101_1110;
+        let operation = MovOperation::new(instruction_first_byte, instruction_second_byte);
+        assert_eq!(operation.to_string(), "mov si, bx".to_string());
+    }
+
+    #[test]
+    fn register_to_register_byte() {
+        let instruction_first_byte = 0b1000_1000;
+        let instruction_second_byte = 0b1100_0110;
+        let operation = MovOperation::new(instruction_first_byte, instruction_second_byte);
+        assert_eq!(operation.to_string(), "mov dh, al".to_string());
+    }
+}
