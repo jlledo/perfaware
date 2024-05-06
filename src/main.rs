@@ -68,9 +68,30 @@ enum Operation {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
 
     use super::*;
+
+    fn write_asm(dissassembly: &[u8], name: &str) -> PathBuf {
+        let mut asm_out_path = std::env::temp_dir();
+        asm_out_path.push(format!("{name}.asm"));
+        std::fs::write(&asm_out_path, dissassembly).unwrap();
+        asm_out_path
+    }
+
+    fn assemble_asm(asm_path: impl AsRef<Path>) -> PathBuf {
+        let asm_path = asm_path.as_ref();
+        let mut bin_out_path = std::env::temp_dir();
+        bin_out_path.push(asm_path.file_stem().unwrap());
+        Command::new("nasm")
+            .arg(asm_path.as_os_str())
+            .arg("-o")
+            .arg(&bin_out_path)
+            .spawn()
+            .unwrap();
+        bin_out_path
+    }
 
     #[test]
     fn single_register_mov() {
@@ -80,14 +101,9 @@ mod tests {
 
         let dissassembly = disassemble(&instruction);
 
-        assert_eq!(
-            dissassembly,
-            "bits 16
-
-mov cx, bx
-"
-            .to_string()
-        )
+        let asm_path = write_asm(dissassembly.as_bytes(), "single_register_mov");
+        let bin_path = assemble_asm(asm_path);
+        assert_eq!(std::fs::read(&bin_path).unwrap(), instruction);
     }
 
     #[test]
@@ -98,24 +114,9 @@ mov cx, bx
 
         let dissassembly = disassemble(&instructions);
 
-        assert_eq!(
-            dissassembly,
-            "bits 16
-
-mov cx, bx
-mov ch, ah
-mov dx, bx
-mov si, bx
-mov bx, di
-mov al, cl
-mov ch, ch
-mov bx, ax
-mov bx, si
-mov sp, di
-mov bp, ax
-"
-            .to_string()
-        )
+        let asm_path = write_asm(dissassembly.as_bytes(), "many_register_mov");
+        let bin_path = assemble_asm(asm_path);
+        assert_eq!(std::fs::read(&bin_path).unwrap(), instructions);
     }
 
     #[test]
@@ -126,28 +127,8 @@ mov bp, ax
 
         let dissassembly = disassemble(&instructions);
 
-        assert_eq!(
-            dissassembly,
-            "bits 16
-
-mov si, bx
-mov dh, al
-mov cl, 12
-mov ch, -12
-mov cx, 12
-mov cx, -12
-mov dx, 3948
-mov dx, -3948
-mov al, [bx + si]
-mov bx, [bp + di]
-mov dx, [bp]
-mov ah, [bx + si + 4]
-mov al, [bx + si + 4999]
-mov [bx + di], cx
-mov [bp + si], cl
-mov [bp], ch
-"
-            .to_string()
-        )
+        let asm_path = write_asm(dissassembly.as_bytes(), "more_movs");
+        let bin_path = assemble_asm(asm_path);
+        assert_eq!(std::fs::read(&bin_path).unwrap(), instructions);
     }
 }
