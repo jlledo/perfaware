@@ -88,7 +88,7 @@ mod tests {
             .arg(asm_path.as_os_str())
             .arg("-o")
             .arg(&bin_out_path)
-            .spawn()
+            .output()
             .unwrap();
         bin_out_path
     }
