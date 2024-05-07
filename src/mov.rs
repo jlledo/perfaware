@@ -141,4 +141,38 @@ mod tests {
         // Disassembler can't distinguish sign
         assert_eq!(disassembly, Some("mov ch, 244".into()));
     }
+
+    #[test]
+    fn immediate_to_register_16_bit_positive_8bit() {
+        let disassembly =
+            disassemble_immediate_to_register(0b1011_1001, &mut [0b0000_1100, 0].iter());
+
+        assert_eq!(disassembly, Some("mov cx, 12".into()));
+    }
+
+    #[test]
+    fn immediate_to_register_16_bit_negative_8bit() {
+        let disassembly =
+            disassemble_immediate_to_register(0b1011_1001, &mut [0b1111_0100, 0b1111_1111].iter());
+
+        // Disassembler can't distinguish sign
+        assert_eq!(disassembly, Some("mov cx, 65524".into()));
+    }
+
+    #[test]
+    fn immediate_to_register_16_bit_positive() {
+        let disassembly =
+            disassemble_immediate_to_register(0b1011_1010, &mut [0b0110_1100, 0b0000_1111].iter());
+
+        assert_eq!(disassembly, Some("mov dx, 3948".into()));
+    }
+
+    #[test]
+    fn immediate_to_register_16_bit_negative() {
+        let disassembly =
+            disassemble_immediate_to_register(0b1011_1001, &mut [0b1001_0100, 0b1111_0000].iter());
+
+        // Disassembler can't distinguish sign
+        assert_eq!(disassembly, Some("mov cx, 61588".into()));
+    }
 }
