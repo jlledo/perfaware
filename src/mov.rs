@@ -175,4 +175,71 @@ mod tests {
         // Disassembler can't distinguish sign
         assert_eq!(disassembly, Some("mov cx, 61588".into()));
     }
+
+    #[test]
+    fn source_address_calculation_no_displacement_1() {
+        let disassembly = disassemble_register_to_from_register(0b1000_1010, &mut [0].iter());
+
+        assert_eq!(disassembly, Some("mov al, [bx + si]".into()));
+    }
+
+    #[test]
+    fn source_address_calculation_no_displacement_2() {
+        let disassembly =
+            disassemble_register_to_from_register(0b1000_1011, &mut [0b0001_1011].iter());
+
+        assert_eq!(disassembly, Some("mov bx, [bp + di]".into()));
+    }
+
+    #[test]
+    fn source_address_calculation_no_displacement_3() {
+        let disassembly =
+            disassemble_register_to_from_register(0b1000_1011, &mut [0b0101_0110, 0].iter());
+
+        assert_eq!(disassembly, Some("mov dx, [bp]".into()));
+    }
+
+    #[test]
+    fn source_address_calculation_8_bit_displacement() {
+        let disassembly = disassemble_register_to_from_register(
+            0b1000_1010,
+            &mut [0b0110_0000, 0b0000_0100].iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov ah, [bx + si + 4]".into()));
+    }
+
+    #[test]
+    fn source_address_calculation_16_bit_displacement() {
+        let disassembly = disassemble_register_to_from_register(
+            0b1000_1010,
+            &mut [0b1000_0000, 0b1000_0111, 0b0001_0011].iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov al, [bx + si + 4999]".into()));
+    }
+
+    #[test]
+    fn destination_address_calculation_no_displacement_1() {
+        let disassembly =
+            disassemble_register_to_from_register(0b1000_1001, &mut [0b0000_1001].iter());
+
+        assert_eq!(disassembly, Some("mov [bx + di], cx".into()));
+    }
+
+    #[test]
+    fn destination_address_calculation_no_displacement_2() {
+        let disassembly =
+            disassemble_register_to_from_register(0b1000_1000, &mut [0b0000_1010].iter());
+
+        assert_eq!(disassembly, Some("mov [bp + si], cl".into()));
+    }
+
+    #[test]
+    fn destination_address_calculation_no_displacement_3() {
+        let disassembly =
+            disassemble_register_to_from_register(0b1000_1000, &mut [0b0110_1110, 0].iter());
+
+        assert_eq!(disassembly, Some("mov [bp], ch".into()));
+    }
 }
