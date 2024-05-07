@@ -23,6 +23,29 @@ where
     Some(string)
 }
 
+pub fn disassemble_immediate_to_register<'stream, S>(
+    first_byte: u8,
+    instruction_stream: &'_ mut S,
+) -> Option<String>
+where
+    S: Iterator<Item = &'stream u8>,
+{
+    let mut data = [0u8; 2];
+    data[0] = *(instruction_stream.next()?);
+    let mut registers = BYTE_REGISTERS;
+
+    let size = lookup_masked(&SIZES, first_byte, 0b0000_1000, 3);
+    if size == Size::Word {
+        data[1] = *(instruction_stream.next()?);
+        registers = WORD_REGISTERS;
+    };
+
+    let register = lookup_masked(&registers, first_byte, 0b0000_0111, 0);
+    let data = u16::from_le_bytes(data);
+
+    Some(format!("mov {register}, {data}"))
+}
+
 const DIRECTIONS: [Direction; 2] = [Direction::FromRegister, Direction::ToRegister];
 const SIZES: [Size; 2] = [Size::Byte, Size::Word];
 const MODES: [Mode; 4] = [
@@ -54,7 +77,7 @@ enum Direction {
     ToRegister,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum Size {
     Byte,
     Word,

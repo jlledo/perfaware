@@ -27,6 +27,13 @@ where
     S: Iterator<Item = &'stream u8>,
 {
     let first_byte = *instruction_stream.next()?;
+    match first_byte & 0b1111_0000 {
+        0b1011_0000 => {
+            return mov::disassemble_immediate_to_register(first_byte, instruction_stream)
+        }
+        _ => (),
+    };
+
     match first_byte & 0b1111_1100 {
         0b1000_1000 => {
             return mov::disassemble_register_to_from_register(first_byte, instruction_stream)
