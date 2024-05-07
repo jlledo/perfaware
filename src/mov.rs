@@ -128,4 +128,17 @@ mod tests {
 
         assert_eq!(disassembly, Some("mov cl, 12".into()));
     }
+
+    #[test]
+    fn immediate_to_register_8_bit_negative() {
+        let instruction_first_byte = 0b1011_0101;
+        let instruction_second_byte = 0b1111_0100;
+        let disassembly = disassemble_immediate_to_register(
+            instruction_first_byte,
+            &mut [instruction_second_byte].iter(),
+        );
+
+        // Disassembler can't distinguish sign
+        assert_eq!(disassembly, Some("mov ch, 244".into()));
+    }
 }
