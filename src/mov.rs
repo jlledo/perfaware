@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 pub fn disassemble_register_to_from_register<'stream, S>(
     first_byte: u8,
     instruction_stream: &'_ mut S,
@@ -9,11 +11,22 @@ where
     let operation_size = lookup_masked(&SIZES, first_byte, 0b0000_0001, 0);
 
     let second_byte = *(instruction_stream.next()?);
-    let _mode = lookup_masked(&MODES, second_byte, 0b1100_0000, 6);
+    let mode = lookup_masked(&MODES, second_byte, 0b1100_0000, 6);
 
-    let table = register_table(operation_size);
-    let register = lookup_masked(table, second_byte, 0b0011_1000, 3);
-    let register_or_memory = lookup_masked(table, second_byte, 0b0000_0111, 0);
+    let register_table = register_table(operation_size);
+    let register = lookup_masked(register_table, second_byte, 0b0011_1000, 3);
+    let register_or_memory = match mode {
+        Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte),
+        Mode::Memory8Bit => {
+            r_m_format_8_bit_displacement(second_byte, *(instruction_stream.next()?))
+        }
+        Mode::Memory16Bit => r_m_format_16_bit_displacement(
+            second_byte,
+            *(instruction_stream.next()?),
+            *(instruction_stream.next()?),
+        ),
+        Mode::Register => Cow::from(lookup_masked(register_table, second_byte, 0b0000_0111, 0)),
+    };
 
     let string = match direction {
         Direction::FromRegister => format!("mov {register_or_memory}, {register}"),
@@ -21,6 +34,67 @@ where
     };
 
     Some(string)
+}
+
+const MEMORY_STRINGS: [&str; 8] = [
+    "[bx + si]",
+    "[bx + di]",
+    "[bp + si]",
+    "[bp + di]",
+    "[si]",
+    "[di]",
+    "[bp]",
+    "[bx]",
+];
+
+fn r_m_format_no_displacement(byte: u8) -> Cow<'static, str> {
+    let byte = byte & 0b111;
+    if byte == 6 {
+        return Cow::from(u8::from_le(byte).to_string());
+    }
+
+    Cow::from(MEMORY_STRINGS[byte as usize])
+}
+
+fn r_m_format_8_bit_displacement(second_byte: u8, third_byte: u8) -> Cow<'static, str> {
+    let second_byte = second_byte & 0b111;
+    if third_byte == 0 {
+        Cow::from(MEMORY_STRINGS[second_byte as usize])
+    } else {
+        let displacement = u8::from_le(third_byte);
+        Cow::from(r_m_format_displacement_inner(
+            second_byte,
+            displacement as u16,
+        ))
+    }
+}
+
+fn r_m_format_16_bit_displacement(
+    second_byte: u8,
+    third_byte: u8,
+    fourth_byte: u8,
+) -> Cow<'static, str> {
+    let second_byte = second_byte & 0b111;
+    let displacement = u16::from_le_bytes([third_byte, fourth_byte]);
+    if displacement == 0 {
+        Cow::from(MEMORY_STRINGS[second_byte as usize])
+    } else {
+        Cow::from(r_m_format_displacement_inner(second_byte, displacement))
+    }
+}
+
+fn r_m_format_displacement_inner(second_byte: u8, displacement: u16) -> String {
+    match second_byte & 0b111 {
+        0 => format!("[bx + si + {displacement}]"),
+        1 => format!("[bx + di + {displacement}]"),
+        2 => format!("[bp + si + {displacement}]"),
+        3 => format!("[bp + di + {displacement}]"),
+        4 => format!("[si + {displacement}]"),
+        5 => format!("[di + {displacement}]"),
+        6 => format!("[bp + {displacement}]"),
+        7 => format!("[bx + {displacement}]"),
+        _ => unreachable!(),
+    }
 }
 
 pub fn disassemble_immediate_to_register<'stream, S>(
