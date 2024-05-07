@@ -1,5 +1,3 @@
-use mov::MovOperation;
-
 mod mov;
 
 const HEADER: &str = "bits 16";
@@ -28,42 +26,13 @@ fn dissassemble_instruction<'stream, S>(instruction_stream: &'_ mut S) -> Option
 where
     S: Iterator<Item = &'stream u8>,
 {
-    let (operation, first_byte) = decode_operation(instruction_stream)?;
-    let decoded = match operation {
-        Operation::Mov => decode_mov(first_byte, instruction_stream)?,
-    };
-
-    Some(decoded)
-}
-
-fn decode_operation<'stream, S>(instruction_stream: &'_ mut S) -> Option<(Operation, u8)>
-where
-    S: Iterator<Item = &'stream u8>,
-{
-    const OPCODE_MASK: u8 = 0b1111_1100;
-
     let first_byte = *instruction_stream.next()?;
-    let operation = match first_byte & OPCODE_MASK {
-        0b1000_1000 => Operation::Mov,
+    match first_byte & 0b1111_1100 {
+        0b1000_1000 => {
+            return mov::disassemble_register_to_from_register(first_byte, instruction_stream)
+        }
         _ => unimplemented!(),
     };
-
-    Some((operation, first_byte))
-}
-
-fn decode_mov<'stream, S>(first_byte: u8, instruction_stream: &'_ mut S) -> Option<String>
-where
-    S: Iterator<Item = &'stream u8>,
-{
-    let second_byte = *instruction_stream.next()?;
-    let mov = MovOperation::new(first_byte, second_byte);
-
-    Some(mov.to_string())
-}
-
-#[derive(Clone, Copy, Debug)]
-enum Operation {
-    Mov,
 }
 
 #[cfg(test)]
