@@ -80,7 +80,7 @@ mod tests {
             instruction_first_byte,
             &mut [instruction_second_byte].iter(),
         );
-        assert_eq!(dissassembly, Some("mov si, bx".to_string()));
+        assert_eq!(dissassembly, Some("mov si, bx".into()));
     }
 
     #[test]
@@ -91,7 +91,7 @@ mod tests {
             instruction_first_byte,
             &mut [instruction_second_byte].iter(),
         );
-        assert_eq!(disassembly, Some("mov dh, al".to_string()));
+        assert_eq!(disassembly, Some("mov dh, al".into()));
     }
 
     #[test]
