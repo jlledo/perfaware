@@ -93,4 +93,12 @@ mod tests {
         );
         assert_eq!(disassembly, Some("mov dh, al".to_string()));
     }
+
+    #[test]
+    fn immediate_to_register_8_bit_positive() {
+        let instruction_first_byte = 0b1011_0001;
+        let instruction_second_byte = 0b0000_1100;
+        let operation = MovOperation::new(instruction_first_byte, instruction_second_byte);
+        assert_eq!(operation.to_string(), "mov cl, 12");
+    }
 }
