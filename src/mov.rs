@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
 pub fn disassemble_register_to_from_register<'stream, S>(
-    first_byte: u8,
     instruction_stream: &'_ mut S,
 ) -> Option<String>
 where
     S: Iterator<Item = &'stream u8>,
 {
+    let first_byte = *(instruction_stream.next()?);
     let direction = lookup_masked(&DIRECTIONS, first_byte, 0b0000_0010, 1);
     let operation_size = lookup_masked(&SIZES, first_byte, 0b0000_0001, 0);
 
@@ -98,12 +98,13 @@ fn r_m_format_displacement_inner(second_byte: u8, displacement: u16) -> String {
 }
 
 pub fn disassemble_immediate_to_register<'stream, S>(
-    first_byte: u8,
     instruction_stream: &'_ mut S,
 ) -> Option<String>
 where
     S: Iterator<Item = &'stream u8>,
 {
+    let first_byte = *(instruction_stream.next()?);
+
     let mut data = [0u8; 2];
     data[0] = *(instruction_stream.next()?);
     let mut registers = BYTE_REGISTERS;
@@ -171,46 +172,28 @@ mod tests {
 
     #[test]
     fn register_to_register_word() {
-        let instruction_first_byte = 0b1000_1001;
-        let instruction_second_byte = 0b1101_1110;
-        let dissassembly = disassemble_register_to_from_register(
-            instruction_first_byte,
-            &mut [instruction_second_byte].iter(),
-        );
+        let dissassembly =
+            disassemble_register_to_from_register(&mut [0b1000_1001, 0b1101_1110].iter());
         assert_eq!(dissassembly, Some("mov si, bx".into()));
     }
 
     #[test]
     fn register_to_register_byte() {
-        let instruction_first_byte = 0b1000_1000;
-        let instruction_second_byte = 0b1100_0110;
-        let disassembly = disassemble_register_to_from_register(
-            instruction_first_byte,
-            &mut [instruction_second_byte].iter(),
-        );
+        let disassembly =
+            disassemble_register_to_from_register(&mut [0b1000_1000, 0b1100_0110].iter());
         assert_eq!(disassembly, Some("mov dh, al".into()));
     }
 
     #[test]
     fn immediate_to_register_8_bit_positive() {
-        let instruction_first_byte = 0b1011_0001;
-        let instruction_second_byte = 0b0000_1100;
-        let disassembly = disassemble_immediate_to_register(
-            instruction_first_byte,
-            &mut [instruction_second_byte].iter(),
-        );
+        let disassembly = disassemble_immediate_to_register(&mut [0b1011_0001, 0b0000_1100].iter());
 
         assert_eq!(disassembly, Some("mov cl, 12".into()));
     }
 
     #[test]
     fn immediate_to_register_8_bit_negative() {
-        let instruction_first_byte = 0b1011_0101;
-        let instruction_second_byte = 0b1111_0100;
-        let disassembly = disassemble_immediate_to_register(
-            instruction_first_byte,
-            &mut [instruction_second_byte].iter(),
-        );
+        let disassembly = disassemble_immediate_to_register(&mut [0b1011_0101, 0b1111_0100].iter());
 
         // Disassembler can't distinguish sign
         assert_eq!(disassembly, Some("mov ch, 244".into()));
@@ -219,7 +202,7 @@ mod tests {
     #[test]
     fn immediate_to_register_16_bit_positive_8bit() {
         let disassembly =
-            disassemble_immediate_to_register(0b1011_1001, &mut [0b0000_1100, 0].iter());
+            disassemble_immediate_to_register(&mut [0b1011_1001, 0b0000_1100, 0].iter());
 
         assert_eq!(disassembly, Some("mov cx, 12".into()));
     }
@@ -227,7 +210,7 @@ mod tests {
     #[test]
     fn immediate_to_register_16_bit_negative_8bit() {
         let disassembly =
-            disassemble_immediate_to_register(0b1011_1001, &mut [0b1111_0100, 0b1111_1111].iter());
+            disassemble_immediate_to_register(&mut [0b1011_1001, 0b1111_0100, 0b1111_1111].iter());
 
         // Disassembler can't distinguish sign
         assert_eq!(disassembly, Some("mov cx, 65524".into()));
@@ -236,7 +219,7 @@ mod tests {
     #[test]
     fn immediate_to_register_16_bit_positive() {
         let disassembly =
-            disassemble_immediate_to_register(0b1011_1010, &mut [0b0110_1100, 0b0000_1111].iter());
+            disassemble_immediate_to_register(&mut [0b1011_1010, 0b0110_1100, 0b0000_1111].iter());
 
         assert_eq!(disassembly, Some("mov dx, 3948".into()));
     }
@@ -244,7 +227,7 @@ mod tests {
     #[test]
     fn immediate_to_register_16_bit_negative() {
         let disassembly =
-            disassemble_immediate_to_register(0b1011_1001, &mut [0b1001_0100, 0b1111_0000].iter());
+            disassemble_immediate_to_register(&mut [0b1011_1001, 0b1001_0100, 0b1111_0000].iter());
 
         // Disassembler can't distinguish sign
         assert_eq!(disassembly, Some("mov cx, 61588".into()));
@@ -252,7 +235,7 @@ mod tests {
 
     #[test]
     fn source_address_calculation_no_displacement_1() {
-        let disassembly = disassemble_register_to_from_register(0b1000_1010, &mut [0].iter());
+        let disassembly = disassemble_register_to_from_register(&mut [0b1000_1010, 0].iter());
 
         assert_eq!(disassembly, Some("mov al, [bx + si]".into()));
     }
@@ -260,7 +243,7 @@ mod tests {
     #[test]
     fn source_address_calculation_no_displacement_2() {
         let disassembly =
-            disassemble_register_to_from_register(0b1000_1011, &mut [0b0001_1011].iter());
+            disassemble_register_to_from_register(&mut [0b1000_1011, 0b0001_1011].iter());
 
         assert_eq!(disassembly, Some("mov bx, [bp + di]".into()));
     }
@@ -268,7 +251,7 @@ mod tests {
     #[test]
     fn source_address_calculation_no_displacement_3() {
         let disassembly =
-            disassemble_register_to_from_register(0b1000_1011, &mut [0b0101_0110, 0].iter());
+            disassemble_register_to_from_register(&mut [0b1000_1011, 0b0101_0110, 0].iter());
 
         assert_eq!(disassembly, Some("mov dx, [bp]".into()));
     }
@@ -276,8 +259,7 @@ mod tests {
     #[test]
     fn source_address_calculation_8_bit_displacement() {
         let disassembly = disassemble_register_to_from_register(
-            0b1000_1010,
-            &mut [0b0110_0000, 0b0000_0100].iter(),
+            &mut [0b1000_1010, 0b0110_0000, 0b0000_0100].iter(),
         );
 
         assert_eq!(disassembly, Some("mov ah, [bx + si + 4]".into()));
@@ -286,8 +268,7 @@ mod tests {
     #[test]
     fn source_address_calculation_16_bit_displacement() {
         let disassembly = disassemble_register_to_from_register(
-            0b1000_1010,
-            &mut [0b1000_0000, 0b1000_0111, 0b0001_0011].iter(),
+            &mut [0b1000_1010, 0b1000_0000, 0b1000_0111, 0b0001_0011].iter(),
         );
 
         assert_eq!(disassembly, Some("mov al, [bx + si + 4999]".into()));
@@ -296,7 +277,7 @@ mod tests {
     #[test]
     fn destination_address_calculation_no_displacement_1() {
         let disassembly =
-            disassemble_register_to_from_register(0b1000_1001, &mut [0b0000_1001].iter());
+            disassemble_register_to_from_register(&mut [0b1000_1001, 0b0000_1001].iter());
 
         assert_eq!(disassembly, Some("mov [bx + di], cx".into()));
     }
@@ -304,7 +285,7 @@ mod tests {
     #[test]
     fn destination_address_calculation_no_displacement_2() {
         let disassembly =
-            disassemble_register_to_from_register(0b1000_1000, &mut [0b0000_1010].iter());
+            disassemble_register_to_from_register(&mut [0b1000_1000, 0b0000_1010].iter());
 
         assert_eq!(disassembly, Some("mov [bp + si], cl".into()));
     }
@@ -312,7 +293,7 @@ mod tests {
     #[test]
     fn destination_address_calculation_no_displacement_3() {
         let disassembly =
-            disassemble_register_to_from_register(0b1000_1000, &mut [0b0110_1110, 0].iter());
+            disassemble_register_to_from_register(&mut [0b1000_1000, 0b0110_1110, 0].iter());
 
         assert_eq!(disassembly, Some("mov [bp], ch".into()));
     }

@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+
 mod mov;
 
 const HEADER: &str = "bits 16";
@@ -12,7 +14,7 @@ fn main() -> color_eyre::eyre::Result<()> {
 
 fn disassemble(machine_code: &[u8]) -> String {
     let mut dissassembly = format!("{HEADER}\n\n");
-    let mut instruction_stream = machine_code.iter();
+    let mut instruction_stream = machine_code.iter().peekable();
 
     while let Some(asm_instruction) = dissassemble_instruction(&mut instruction_stream) {
         dissassembly += &asm_instruction;
@@ -22,22 +24,18 @@ fn disassemble(machine_code: &[u8]) -> String {
     dissassembly
 }
 
-fn dissassemble_instruction<'stream, S>(instruction_stream: &'_ mut S) -> Option<String>
+fn dissassemble_instruction<'stream, S>(instruction_stream: &'_ mut Peekable<S>) -> Option<String>
 where
     S: Iterator<Item = &'stream u8>,
 {
-    let first_byte = *instruction_stream.next()?;
+    let first_byte = **instruction_stream.peek()?;
     match first_byte & 0b1111_0000 {
-        0b1011_0000 => {
-            return mov::disassemble_immediate_to_register(first_byte, instruction_stream)
-        }
+        0b1011_0000 => return mov::disassemble_immediate_to_register(instruction_stream),
         _ => (),
     };
 
     match first_byte & 0b1111_1100 {
-        0b1000_1000 => {
-            return mov::disassemble_register_to_from_register(first_byte, instruction_stream)
-        }
+        0b1000_1000 => return mov::disassemble_register_to_from_register(instruction_stream),
         _ => unimplemented!(),
     };
 }
