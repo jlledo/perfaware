@@ -7,16 +7,18 @@ const HEADER: &str = "bits 16";
 fn main() -> color_eyre::eyre::Result<()> {
     let file = std::env::args().nth(1).unwrap();
     let machine_code = std::fs::read(&file)?;
-    let dissassembly = disassemble(&machine_code);
+    let dissassembly = disassemble(machine_code.into_iter().peekable());
     print!("{dissassembly}");
     Ok(())
 }
 
-fn disassemble(machine_code: &[u8]) -> String {
+fn disassemble<I>(mut machine_code: Peekable<I>) -> String
+where
+    I: Iterator<Item = u8>,
+{
     let mut dissassembly = format!("{HEADER}\n\n");
-    let mut instruction_stream = machine_code.iter().peekable();
 
-    while let Some(asm_instruction) = dissassemble_instruction(&mut instruction_stream) {
+    while let Some(asm_instruction) = dissassemble_instruction(&mut machine_code) {
         dissassembly += &asm_instruction;
         dissassembly.push('\n');
     }
@@ -24,11 +26,11 @@ fn disassemble(machine_code: &[u8]) -> String {
     dissassembly
 }
 
-fn dissassemble_instruction<'stream, S>(instruction_stream: &'_ mut Peekable<S>) -> Option<String>
+fn dissassemble_instruction<I>(instruction_stream: &'_ mut Peekable<I>) -> Option<String>
 where
-    S: Iterator<Item = &'stream u8>,
+    I: Iterator<Item = u8>,
 {
-    let first_byte = **instruction_stream.peek()?;
+    let first_byte = *instruction_stream.peek()?;
     match first_byte & 0b1111_0000 {
         0b1011_0000 => return mov::disassemble_immediate_to_register(instruction_stream),
         _ => (),
@@ -73,7 +75,7 @@ mod tests {
         path.push("listings/listing_0037_single_register_mov");
         let instruction = std::fs::read(path).unwrap();
 
-        let dissassembly = disassemble(&instruction);
+        let dissassembly = disassemble(instruction.clone().into_iter().peekable());
 
         let asm_path = write_asm(dissassembly.as_bytes(), "single_register_mov");
         let bin_path = assemble_asm(asm_path);
@@ -86,7 +88,7 @@ mod tests {
         path.push("listings/listing_0038_many_register_mov");
         let instructions = std::fs::read(path).unwrap();
 
-        let dissassembly = disassemble(&instructions);
+        let dissassembly = disassemble(instructions.clone().into_iter().peekable());
 
         let asm_path = write_asm(dissassembly.as_bytes(), "many_register_mov");
         let bin_path = assemble_asm(asm_path);
@@ -99,7 +101,7 @@ mod tests {
         path.push("listings/listing_0039_more_movs");
         let instructions = std::fs::read(path).unwrap();
 
-        let dissassembly = disassemble(&instructions);
+        let dissassembly = disassemble(instructions.clone().into_iter().peekable());
 
         let asm_path = write_asm(dissassembly.as_bytes(), "more_movs");
         let bin_path = assemble_asm(asm_path);
