@@ -296,4 +296,31 @@ mod tests {
 
         assert_eq!(disassembly, Some("mov [bp], ch".into()));
     }
+
+    #[test]
+    fn signed_displacement_1() {
+        let disassembly = disassemble_register_to_from_register(
+            &mut [0b1000_1011, 0b0100_0001, 0b1101_1011].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov ax, [bx + di - 37]".into()));
+    }
+
+    #[test]
+    fn signed_displacement_2() {
+        let disassembly = disassemble_register_to_from_register(
+            &mut [0b1000_1001, 0b1000_1100, 0b1101_0100, 0b1111_1110].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov [si - 300], cx".into()));
+    }
+
+    #[test]
+    fn signed_displacement_3() {
+        let disassembly = disassemble_register_to_from_register(
+            &mut [0b1000_1011, 0b0101_0111, 0b1110_0000].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov dx, [bx - 32]".into()));
+    }
 }
