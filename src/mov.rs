@@ -92,13 +92,21 @@ where
 {
     let second_byte = second_byte & 0b111;
     if second_byte == 6 {
-        let third_byte = instruction_stream.next()?;
-        let fourth_byte = instruction_stream.next()?;
-        let displacement = u16::from_le_bytes([third_byte, fourth_byte]);
-        return Some(Cow::from(format!("[{}]", displacement.to_string())));
+        let address = direct_address(instruction_stream)?;
+        return Some(Cow::from(address));
     }
 
     Some(Cow::from(MEMORY_STRINGS[second_byte as usize]))
+}
+
+fn direct_address<I>(instruction_stream: &'_ mut I) -> Option<String>
+where
+    I: Iterator<Item = u8>,
+{
+    let memory_lo = instruction_stream.next()?;
+    let memory_hi = instruction_stream.next()?;
+    let displacement = u16::from_le_bytes([memory_lo, memory_hi]);
+    Some(format!("[{}]", displacement.to_string()))
 }
 
 fn r_m_format_8_bit_displacement(second_byte: u8, third_byte: u8) -> Cow<'static, str> {
