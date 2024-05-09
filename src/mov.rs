@@ -47,6 +47,31 @@ where
     Some(r_m)
 }
 
+pub fn disassemble_immediate_to_register_memory<I>(instruction_stream: &'_ mut I) -> Option<String>
+where
+    I: Iterator<Item = u8>,
+{
+    let first_byte = instruction_stream.next()?;
+    let operation_size = lookup_masked(&SIZES, first_byte, 0b1, 0);
+
+    let second_byte = instruction_stream.next()?;
+    let register_or_memory = register_or_memory(operation_size, second_byte, instruction_stream)?;
+
+    let mut data = [0u8; 2];
+    data[0] = instruction_stream.next()?;
+    if operation_size == Size::Word {
+        data[1] = instruction_stream.next()?;
+    };
+    let data = u16::from_le_bytes(data);
+
+    let disassembly = format!(
+        "mov {register_or_memory}, {} {data}",
+        operation_size.as_immediate_str()
+    );
+
+    Some(disassembly)
+}
+
 const MEMORY_STRINGS: [&str; 8] = [
     "[bx + si]",
     "[bx + di]",
@@ -181,6 +206,15 @@ enum Direction {
 enum Size {
     Byte,
     Word,
+}
+
+impl Size {
+    fn as_immediate_str(&self) -> &'static str {
+        match self {
+            Size::Byte => "byte",
+            Size::Word => "word",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
