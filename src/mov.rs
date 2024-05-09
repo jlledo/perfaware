@@ -441,4 +441,38 @@ mod tests {
 
         assert_eq!(disassembly, Some("mov bx, [3458]".into()));
     }
+
+    #[test]
+    fn memory_to_accumulator_word_16_bit() {
+        let disassembly = disassemble_memory_to_from_accumulator(
+            &mut [0b1010_0001, 0b1111_1011, 0b0000_1001].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov ax, [2555]".into()));
+    }
+
+    #[test]
+    fn memory_to_accumulator_word_8_bit() {
+        let disassembly =
+            disassemble_memory_to_from_accumulator(&mut [0b1010_0001, 0b0001_0000, 0].into_iter());
+
+        assert_eq!(disassembly, Some("mov ax, [16]".into()));
+    }
+
+    #[test]
+    fn accumulator_to_memory_word_16_bit() {
+        let disassembly = disassemble_memory_to_from_accumulator(
+            &mut [0b1010_0011, 0b1111_1010, 0b0000_1001].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov [2554], ax".into()));
+    }
+
+    #[test]
+    fn accumulator_to_memory_word_8_bit() {
+        let disassembly =
+            disassemble_memory_to_from_accumulator(&mut [0b1010_0011, 0b0000_1111, 0].into_iter());
+
+        assert_eq!(disassembly, Some("mov [15], ax".into()));
+    }
 }
