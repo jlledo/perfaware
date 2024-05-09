@@ -107,4 +107,17 @@ mod tests {
         let bin_path = assemble_asm(asm_path);
         assert_eq!(std::fs::read(&bin_path).unwrap(), instructions);
     }
+
+    #[test]
+    fn challenge_movs() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("listings/listing_0040_challenge_movs");
+        let instructions = std::fs::read(path).unwrap();
+
+        let dissassembly = disassemble(instructions.clone().into_iter().peekable());
+
+        let asm_path = write_asm(dissassembly.as_bytes(), "challenge_movs");
+        let bin_path = assemble_asm(asm_path);
+        assert_eq!(std::fs::read(&bin_path).unwrap(), instructions);
+    }
 }
