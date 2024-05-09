@@ -60,7 +60,7 @@ fn r_m_format_8_bit_displacement(second_byte: u8, third_byte: u8) -> Cow<'static
         let displacement = u8::from_le(third_byte);
         Cow::from(r_m_format_displacement_inner(
             second_byte,
-            displacement as u16,
+            displacement as i8 as i16,
         ))
     }
 }
@@ -71,7 +71,7 @@ fn r_m_format_16_bit_displacement(
     fourth_byte: u8,
 ) -> Cow<'static, str> {
     let second_byte = second_byte & 0b111;
-    let displacement = u16::from_le_bytes([third_byte, fourth_byte]);
+    let displacement = i16::from_le_bytes([third_byte, fourth_byte]);
     if displacement == 0 {
         Cow::from(MEMORY_STRINGS[second_byte as usize])
     } else {
@@ -79,17 +79,33 @@ fn r_m_format_16_bit_displacement(
     }
 }
 
-fn r_m_format_displacement_inner(second_byte: u8, displacement: u16) -> String {
-    match second_byte & 0b111 {
-        0 => format!("[bx + si + {displacement}]"),
-        1 => format!("[bx + di + {displacement}]"),
-        2 => format!("[bp + si + {displacement}]"),
-        3 => format!("[bp + di + {displacement}]"),
-        4 => format!("[si + {displacement}]"),
-        5 => format!("[di + {displacement}]"),
-        6 => format!("[bp + {displacement}]"),
-        7 => format!("[bx + {displacement}]"),
-        _ => unreachable!(),
+fn r_m_format_displacement_inner(second_byte: u8, displacement: i16) -> String {
+    let second_byte = second_byte & 0b111;
+    if displacement > 0 {
+        match second_byte {
+            0 => format!("[bx + si + {displacement}]"),
+            1 => format!("[bx + di + {displacement}]"),
+            2 => format!("[bp + si + {displacement}]"),
+            3 => format!("[bp + di + {displacement}]"),
+            4 => format!("[si + {displacement}]"),
+            5 => format!("[di + {displacement}]"),
+            6 => format!("[bp + {displacement}]"),
+            7 => format!("[bx + {displacement}]"),
+            _ => unreachable!(),
+        }
+    } else {
+        let displacement = -displacement;
+        match second_byte {
+            0 => format!("[bx + si - {displacement}]"),
+            1 => format!("[bx + di - {displacement}]"),
+            2 => format!("[bp + si - {displacement}]"),
+            3 => format!("[bp + di - {displacement}]"),
+            4 => format!("[si - {displacement}]"),
+            5 => format!("[di - {displacement}]"),
+            6 => format!("[bp - {displacement}]"),
+            7 => format!("[bx - {displacement}]"),
+            _ => unreachable!(),
+        }
     }
 }
 
