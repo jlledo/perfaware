@@ -339,4 +339,30 @@ mod tests {
 
         assert_eq!(disassembly, Some("mov dx, [bx - 32]".into()));
     }
+
+    #[test]
+    fn explicit_size_byte() {
+        let disassembly = disassemble_immediate_to_register_memory(
+            &mut [0b1100_0110, 0b0000_0011, 0b0000_0111].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov [bp + di], byte 7".into()));
+    }
+
+    #[test]
+    fn explicit_size_word() {
+        let disassembly = disassemble_immediate_to_register_memory(
+            &mut [
+                0b1100_0111,
+                0b1000_0101,
+                0b1000_0101,
+                0b0000_0011,
+                0b0101_1011,
+                0b0000_0001,
+            ]
+            .into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov [di + 901], word 347".into()));
+    }
 }
