@@ -33,11 +33,11 @@ where
     let r_m = match mode {
         Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte, instruction_stream)?,
         Mode::Memory8Bit => r_m_format_8_bit_displacement(second_byte, instruction_stream.next()?),
-        Mode::Memory16Bit => r_m_format_16_bit_displacement(
-            second_byte,
-            instruction_stream.next()?,
-            instruction_stream.next()?,
-        ),
+        Mode::Memory16Bit => {
+            let third_byte = instruction_stream.next()?;
+            let fourth_byte = instruction_stream.next()?;
+            r_m_format_16_bit_displacement(second_byte, third_byte, fourth_byte)
+        }
         Mode::Register => {
             let register_table = register_table(size);
             Cow::from(lookup_masked(register_table, second_byte, 0b0000_0111, 0))
