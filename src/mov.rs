@@ -9,20 +9,9 @@ where
     let operation_size = lookup_masked(&SIZES, first_byte, 0b0000_0001, 0);
 
     let second_byte = instruction_stream.next()?;
-    let mode = lookup_masked(&MODES, second_byte, 0b1100_0000, 6);
-
     let register_table = register_table(operation_size);
     let register = lookup_masked(register_table, second_byte, 0b0011_1000, 3);
-    let register_or_memory = match mode {
-        Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte),
-        Mode::Memory8Bit => r_m_format_8_bit_displacement(second_byte, instruction_stream.next()?),
-        Mode::Memory16Bit => r_m_format_16_bit_displacement(
-            second_byte,
-            instruction_stream.next()?,
-            instruction_stream.next()?,
-        ),
-        Mode::Register => Cow::from(lookup_masked(register_table, second_byte, 0b0000_0111, 0)),
-    };
+    let register_or_memory = register_or_memory(operation_size, second_byte, instruction_stream)?;
 
     let string = match direction {
         Direction::FromRegister => format!("mov {register_or_memory}, {register}"),
@@ -30,6 +19,32 @@ where
     };
 
     Some(string)
+}
+
+fn register_or_memory<I>(
+    size: Size,
+    second_byte: u8,
+    instruction_stream: &'_ mut I,
+) -> Option<Cow<'static, str>>
+where
+    I: Iterator<Item = u8>,
+{
+    let mode = lookup_masked(&MODES, second_byte, 0b1100_0000, 6);
+    let r_m = match mode {
+        Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte),
+        Mode::Memory8Bit => r_m_format_8_bit_displacement(second_byte, instruction_stream.next()?),
+        Mode::Memory16Bit => r_m_format_16_bit_displacement(
+            second_byte,
+            instruction_stream.next()?,
+            instruction_stream.next()?,
+        ),
+        Mode::Register => {
+            let register_table = register_table(size);
+            Cow::from(lookup_masked(register_table, second_byte, 0b0000_0111, 0))
+        }
+    };
+
+    Some(r_m)
 }
 
 const MEMORY_STRINGS: [&str; 8] = [
