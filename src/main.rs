@@ -38,6 +38,7 @@ where
 
     match first_byte & 0b1111_1100 {
         0b1000_1000 => return mov::disassemble_register_to_from_register(instruction_stream),
+        0b1010_0000 => return mov::disassemble_memory_to_from_accumulator(instruction_stream),
         _ => (),
     };
 

@@ -188,6 +188,23 @@ where
     Some(format!("mov {register}, {data}"))
 }
 
+pub fn disassemble_memory_to_from_accumulator<I>(instruction_stream: &'_ mut I) -> Option<String>
+where
+    I: Iterator<Item = u8>,
+{
+    let first_byte = instruction_stream.next()?;
+    let direction = first_byte & 0b10;
+
+    let address = direct_address(instruction_stream)?;
+    let disassembly = if direction == 0b10 {
+        format!("mov {address}, ax")
+    } else {
+        format!("mov ax, {address}")
+    };
+
+    Some(disassembly)
+}
+
 const DIRECTIONS: [Direction; 2] = [Direction::FromRegister, Direction::ToRegister];
 const SIZES: [Size; 2] = [Size::Byte, Size::Word];
 const MODES: [Mode; 4] = [
