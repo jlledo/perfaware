@@ -31,7 +31,7 @@ where
 {
     let mode = lookup_masked(&MODES, second_byte, 0b1100_0000, 6);
     let r_m = match mode {
-        Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte),
+        Mode::MemoryNoDisplacement => r_m_format_no_displacement(second_byte, instruction_stream)?,
         Mode::Memory8Bit => r_m_format_8_bit_displacement(second_byte, instruction_stream.next()?),
         Mode::Memory16Bit => r_m_format_16_bit_displacement(
             second_byte,
@@ -83,13 +83,22 @@ const MEMORY_STRINGS: [&str; 8] = [
     "[bx]",
 ];
 
-fn r_m_format_no_displacement(byte: u8) -> Cow<'static, str> {
-    let byte = byte & 0b111;
-    if byte == 6 {
-        return Cow::from(u8::from_le(byte).to_string());
+fn r_m_format_no_displacement<I>(
+    second_byte: u8,
+    instruction_stream: &'_ mut I,
+) -> Option<Cow<'static, str>>
+where
+    I: Iterator<Item = u8>,
+{
+    let second_byte = second_byte & 0b111;
+    if second_byte == 6 {
+        let third_byte = instruction_stream.next()?;
+        let fourth_byte = instruction_stream.next()?;
+        let displacement = u16::from_le_bytes([third_byte, fourth_byte]);
+        return Some(Cow::from(format!("[{}]", displacement.to_string())));
     }
 
-    Cow::from(MEMORY_STRINGS[byte as usize])
+    Some(Cow::from(MEMORY_STRINGS[second_byte as usize]))
 }
 
 fn r_m_format_8_bit_displacement(second_byte: u8, third_byte: u8) -> Cow<'static, str> {
