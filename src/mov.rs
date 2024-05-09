@@ -414,4 +414,22 @@ mod tests {
 
         assert_eq!(disassembly, Some("mov [di + 901], word 347".into()));
     }
+
+    #[test]
+    fn direct_address_byte() {
+        let disassembly = disassemble_register_to_from_register(
+            &mut [0b1000_1011, 0b0010_1110, 0b0000_0101, 0].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov bp, [5]".into()));
+    }
+
+    #[test]
+    fn direct_address_word() {
+        let disassembly = disassemble_register_to_from_register(
+            &mut [0b1000_1011, 0b0001_1110, 0b1000_0010, 0b0000_1101].into_iter(),
+        );
+
+        assert_eq!(disassembly, Some("mov bx, [3458]".into()));
+    }
 }
